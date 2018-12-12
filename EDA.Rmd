@@ -38,27 +38,24 @@ glimpse(datos_items)
 El catálogo de items tiene 22,170 renglones que equivalen a los distintos artículos que tiene la tienda.
 
 ```{r}
-datos_items %>% select(item_name) %>% unique()
+nrow(datos_items %>% select(item_name) %>% unique())
 
 ```
 
 En la tienda existen 84 categorías de artículos.
 
 ```{r}
-datos_items %>% select(item_category_name) %>% unique()
+nrow(datos_items %>% select(item_category_name) %>% unique())
 
 ```
 
 Obtenemos el número de artículos en cada categoría 
 
 ```{r}
-
 productos_por_categoria <- datos_items %>%
   group_by(item_category_name) %>%
   summarise(conteo = n()) %>%
   arrange(desc(conteo)) 
-
-
 ```
 
 La lista de las 10 categorías con mayor número de artículos de la tienda son:
@@ -101,7 +98,7 @@ glimpse(shops)
 El catálogo de tiene 60 tiendas distintas. 
 
 ```{r}
-shops %>% select(shop_name) %>% unique()
+nrow(shops %>% select(shop_name) %>% unique())
 
 ```
 
@@ -133,7 +130,7 @@ datos_train<-left_join(train,datos_items,by='item_id')%>%
 ```
 
 ```{r}
-str(datos_train)
+glimpse(datos_train)
 ```
 
 Se tienen 424124 duplas (art., tienda) en el set de entrenamiento de las 1,330,200. 
