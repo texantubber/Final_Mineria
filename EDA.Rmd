@@ -11,9 +11,12 @@ library(lubridate)
 
 # Cargar catalogos y datos entrenamiento
 ```{r}
-items <- read_csv("datos/items.csv")
-item_cat<-read_csv("datos/item_categories.csv")
-shops<-read_csv("datos/shops.csv")
+
+# Cargamos catálogos traducidos 
+load('datos_trad/transdata.RData')
+rm(item_category_en,item_category_ru,items_en,items_ru,shops_en,shops_ru)
+
+# Cargamos los datos de entrenamiento y prueba
 train<-read_csv("datos/sales_train.csv")
 test<-read_csv("datos/test.csv")
 
@@ -23,7 +26,7 @@ test<-read_csv("datos/test.csv")
 
 Se hace un left join de los catalogos de item y item_category.
 ```{r}
-datos_items<-left_join(items,item_cat,by="item_category_id")%>%
+datos_items<-left_join(items,item_category,by="item_category_id")%>%
   select(item_id, item_name, item_category_id, item_category_name)
 ```
 
