@@ -1,0 +1,42 @@
+#Traduccion de Ruso a Ingles.
+
+```{r}
+library(translateR)
+library(tidyr)
+library(dplyr)
+#install.packages("translateR")
+item_category <- read.csv("~/item_categories.csv")
+items <- read.csv("~/items.csv")
+sales_train <- read.csv("~/sales_train.csv")
+shops <- read.csv("~/shops.csv")
+
+#Para este paso, generamos una llave para el API de Google Translate, sin embargo esto puede generar costos y lo decidimos no incluirlo en el código.  Otra opción es suspender la llave para que no sea utilizada.
+key <- "Please_use_your_own_API_key"
+
+#Transformamos las columnas de clase "factor" a "character"
+item_category$item_category_name <- as.character(item_category$item_category_name)
+items$item_name <- as.character(items$item_name)
+shops$shop_name <- as.character(shops$shop_name)
+
+#Traducimos las columnas de las tablas  utilizando el API de google translate.
+item_category_en <- translate(dataset=item_category,content.field="item_category_name",google.api.key = key, source.lang="ru", target.lang="en")
+
+items_en <- translate(dataset=items,content.field="item_name",google.api.key = key, source.lang="ru", target.lang="en")
+
+shops_en <- translate(dataset=shops,content.field="shop_name",google.api.key = key, source.lang="ru", target.lang="en")
+
+item_category_ru <- item_category
+items_ru <- items
+shops_ru <- shops
+
+item_category <- item_category_en %>% select(translatedContent,item_category_id)
+names(item_category) <- c("item_category_name","item_category_id")
+items <- items_en %>% select("translatedContent","item_id","item_category_id")
+names(items) <- c("item_name","item_id","item_category_id")
+shops <- shops_en %>% select(translatedContent,shop_id)
+names(shops) <- c("shop_name","shop_id")
+
+#Corremos este comando para guardar los objetos obtenidos y no tener que correr las traducciones de nuevo.  Estos objetos con las traducciones los guardamos en el archivo "transdata.RData"
+save(items,items_en,items_ru,item_category,item_category_en,item_category_ru, shops,shops_en,shops_ru,file = "transdata.RData")
+```
+
