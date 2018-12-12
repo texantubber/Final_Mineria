@@ -1,6 +1,14 @@
 Análisis Exploratorio de Datos
 ================
 
+-   [Cargar catalogos y datos entrenamiento](#cargar-catalogos-y-datos-entrenamiento)
+-   [Catalogo Artículos](#catalogo-artículos)
+-   [Catalogo Tiendas](#catalogo-tiendas)
+-   [Datos de entrenamiento](#datos-de-entrenamiento)
+-   [Limpieza de datos](#limpieza-de-datos)
+    -   [Arreglamos la fecha](#arreglamos-la-fecha)
+-   [Che](#che)
+
 Cargar catalogos y datos entrenamiento
 ======================================
 
@@ -200,8 +208,11 @@ length(unique(datos_train$ID))
 
     ## [1] 424124
 
+Limpieza de datos
+=================
+
 Arreglamos la fecha
-===================
+-------------------
 
 ``` r
 datos_train<-datos_train%>%
@@ -211,3 +222,6 @@ datos_train<-datos_train%>%
          date=as.Date(date,format="%d.%m.%Y"))%>%
   select(date,day,month,year,everything())
 ```
+
+Che
+===
