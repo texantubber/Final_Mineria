@@ -11,6 +11,10 @@ library(tidyverse)
 library(lubridate)
 ```
 
+```{r}
+source('02_Utils.R')
+```
+
 # Cargar catalogos y datos entrenamiento
 ```{r}
 
@@ -203,27 +207,72 @@ unique(datos_train$year)
 ## Arreglar precios negativos
 
 ```{r}
-datos_train$devuelto<-ifelse(datos_train$item_price==-1,1,0)
+datos_train$devuelto<-as.integer(ifelse(datos_train$item_price==-1,1,0))
 
 ```
 
-sólo hay un artículo que se ha devuelto, es el 8540. Su precio está marcado con -1. Dado que ya se hizo una dummie de devolucion, se busca su precio regular y se reemplaza 
-```{r}
+sólo hay un artículo que se ha devuelto, es el 2973. Su precio está marcado con -1. Dado que ya se hizo una dummie de devolucion, se busca su precio regular y se reemplaza 
+```{r ArreglaPrecioNeg,warning=FALSE, message=FALSE}
+# extraemos los items devueltos 
 items_devueltos<-datos_train%>%
   filter(item_price==-1)%>%
   select(item_id)%>%
   unique()%>%
   as.numeric
 
-precio_devueltos<-datos_train%>%
-  filter(item_id==items_devueltos)%>%
-  filter(item_price!=-1)%>%
-  select(item_price)%>%
+
+# extraemos la fecha de devolucion
+fechas_devueltos<-datos_train%>%
+  filter(item_price==-1)%>%
+  select(date)%>%
   unique()
 
+# Extraemso el precio promedio del objeto en la misma fecha
+precio_devueltos<-datos_train%>%
+  filter(item_id==items_devueltos)%>%
+  filter(date==fechas_devueltos)%>%
+  filter(item_price!=-1)%>%
+  select(item_price)%>%
+  unlist()%>%
+  mean()
+
+<<<<<<< HEAD
 fechas_devueltos<-datos_train%>%
   filter(item_price==-1)%>%
   select(date)%>%
   unique
+=======
+datos_train$item_price[which(datos_train$item_id==items_devueltos & datos_train$item_price==-1)]<-precio_devueltos
+>>>>>>> 5680b7bed7aa6902326e035aec3cd75d77ce49f0
 ```
+
+
+## Datos Mensuales
+```{r}
+
+# hacemos el agregado mensual por dupla (art, tienda) y fecha mensual (date_block_num)
+train_mensuales<-datos_train%>%
+  group_by(ID,date_block_num)%>%
+  summarise(month=unique(month),
+            year=unique(year),
+            shop_id=unique(shop_id),
+            item_id=unique(item_id),
+            item_price_min=min(item_price),
+            item_price_max=max(item_price),
+            item_price_mean=mean(item_price),
+            item_price_median=quantile(item_price,prob=0.5),
+            item_price_mode=getmode(item_price),
+            item_price_range=max(item_price)-min(item_price),
+            item_cnt_day=sum(item_cnt_day),
+            item_name=unique(item_name),
+            item_category_id=unique(item_category_id),
+            item_category_name=unique(item_category_name),
+            shop_name=unique(shop_name))
+
+train_mensuales<-arrange(train_mensuales,ID)
+
+# Guardamos como Rds
+saveRDS(train_mensuales,"Datos_clean/train_mensuales.rds")
+```
+
 
