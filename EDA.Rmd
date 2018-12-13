@@ -224,7 +224,6 @@ precio_devueltos<-datos_train%>%
 fechas_devueltos<-datos_train%>%
   filter(item_price==-1)%>%
   select(date)%>%
-  unique()%>%
-  as.numeric
+  unique
 ```
 
