@@ -1,0 +1,230 @@
+---
+title: "Análisis Exploratorio de Datos"
+output: 
+  github_document:
+    toc: TRUE
+---
+
+```{r setup, include=FALSE, message=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(lubridate)
+```
+
+# Cargar catalogos y datos entrenamiento
+```{r}
+
+# Cargamos catálogos traducidos 
+load('datos_trad/transdata.RData')
+rm(item_category_en,item_category_ru,items_en,items_ru,shops_en,shops_ru)
+
+# Cargamos los datos de entrenamiento y prueba
+train<-read_csv("datos/sales_train.csv")
+test<-read_csv("datos/test.csv")
+
+```
+
+# Catalogo Artículos
+
+Se hace un left join de los catalogos de item y item_category.
+```{r}
+datos_items<-left_join(items,item_category,by="item_category_id")%>%
+  select(item_id, item_name, item_category_id, item_category_name)
+```
+
+Hechamos un vistazo a los datos.
+```{r}
+glimpse(datos_items)
+```
+
+El catálogo de items tiene 22,170 renglones que equivalen a los distintos artículos que tiene la tienda.
+
+```{r}
+nrow(datos_items %>% select(item_name) %>% unique())
+
+```
+
+En la tienda existen 84 categorías de artículos.
+
+```{r}
+nrow(datos_items %>% select(item_category_name) %>% unique())
+
+```
+
+Obtenemos el número de artículos en cada categoría 
+
+```{r}
+productos_por_categoria <- datos_items %>%
+  group_by(item_category_name) %>%
+  summarise(conteo = n()) %>%
+  arrange(desc(conteo)) 
+```
+
+La lista de las 10 categorías con mayor número de artículos de la tienda son:
+
+```{r BarPlotTop}
+
+productos_por_categoria%>%
+  top_n(10)%>%
+  ggplot(aes(x = factor(item_category_name,c(productos_por_categoria$item_category_name[1:10])), y = conteo)) + 
+    geom_bar(stat = "identity")+
+  theme(axis.text.x=element_text(angle=90))+
+  ggtitle('Top 10 de categorías por número de elementos en cada categoría')+
+  xlab('Categoría')+
+  ylab('No. de artículos')
+  
+```
+
+La lista de las 10 categorías con mayor número de artículos de la tienda son:
+
+```{r BarPlotBottom}
+
+productos_por_categoria%>%
+  top_n(-10)%>%
+  ggplot(aes(x = factor(item_category_name,c(productos_por_categoria$item_category_name[(nrow(productos_por_categoria)-10):nrow(productos_por_categoria)])), y = conteo)) + 
+    geom_bar(stat = "identity")+
+  theme(axis.text.x=element_text(angle=90))+
+  ggtitle('Bottom 10 de categorías por número de elementos en cada categoría')+
+  xlab('Categoría')+
+  ylab('No. de artículos')
+  
+```
+
+# Catalogo Tiendas
+
+Hechamos un vistazo a los datos.
+```{r}
+glimpse(shops)
+```
+
+El catálogo de tiene 60 tiendas distintas. 
+
+```{r}
+nrow(shops %>% select(shop_name) %>% unique())
+
+```
+
+
+# Datos de entrenamiento 
+
+```{r}
+glimpse(train)
+```
+
+Generamos un ID para la dupla (art,tienda)
+```{r}
+duplas<-list(item_id=unique(datos_items$item_id),
+             shop_id=unique(shops$shop_id))%>%
+  expand.grid
+
+duplas<-duplas%>%
+  mutate(ID=1:nrow(duplas))%>%
+  select(ID,everything())
+```
+
+Hacemos el left join de los datos de entrenamiento con el catalogo de artículos y de tiendas. También hacemos un left join con el ID de la dupla (artículo,tienda)
+
+```{r JoinTrainCatalogos,warning=FALSE, message=FALSE}
+datos_train<-left_join(train,datos_items,by='item_id')%>%
+  left_join(shops,by='shop_id')%>%
+  left_join(duplas,by=c('item_id','shop_id'))
+
+```
+
+```{r}
+glimpse(datos_train)
+```
+
+Se tienen 424124 duplas (art., tienda) en el set de entrenamiento de las 1,330,200. 
+
+```{r}
+length(unique(datos_train$ID))
+```
+
+# Limpieza de datos
+
+## Arreglamos tipo de variables (la fecha, precio)
+
+```{r}
+datos_train<-datos_train%>%
+  mutate(date=as.Date(date,format="%d.%m.%Y"),
+         item_cnt_day=as.integer(item_cnt_day))%>%
+  select(date,everything())
+```
+
+## Checamos tipo de variables
+
+Todas las variables tienen el tipo de dato correcto.
+
+```{r}
+glimpse(datos_train)
+```
+
+## Checar la prescencia de datos faltantes 
+
+No hay datos faltantes en ninguna de las variables 
+
+```{r}
+summary(datos_train)
+```
+
+
+# Feature Engineering 
+
+## Separar día mes y año
+
+```{r}
+datos_train<-datos_train%>%
+  mutate(day=as.integer(substring(as.character(date),9,10)),
+         month=as.integer(substring(as.character(date),6,7)),
+         year=as.integer(substring(as.character(date),1,4)))%>%
+  select(date,day,month,year,everything())
+```
+
+## Hacer one hot encoding de variables:
+
+* día
+* mes
+* año
+* shop_id
+* item_id
+* item_category
+
+```{r}
+glimpse(datos_train)
+```
+
+La base de datos tiene información diaría para tres años.
+
+```{r}
+unique(datos_train$year)
+```
+
+## Arreglar precios negativos
+
+```{r}
+datos_train$devuelto<-ifelse(datos_train$item_price==-1,1,0)
+
+```
+
+sólo hay un artículo que se ha devuelto, es el 8540. Su precio está marcado con -1. Dado que ya se hizo una dummie de devolucion, se busca su precio regular y se reemplaza 
+```{r}
+items_devueltos<-datos_train%>%
+  filter(item_price==-1)%>%
+  select(item_id)%>%
+  unique()%>%
+  as.numeric
+
+precio_devueltos<-datos_train%>%
+  filter(item_id==items_devueltos)%>%
+  filter(item_price!=-1)%>%
+  select(item_price)%>%
+  unique()
+
+fechas_devueltos<-datos_train%>%
+  filter(item_price==-1)%>%
+  select(date)%>%
+  unique()%>%
+  as.numeric
+```
+
