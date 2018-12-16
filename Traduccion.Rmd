@@ -5,10 +5,25 @@ library(translateR)
 library(tidyr)
 library(dplyr)
 #install.packages("translateR")
-item_category <- read.csv("~/item_categories.csv")
-items <- read.csv("~/items.csv")
-sales_train <- read.csv("~/sales_train.csv")
-shops <- read.csv("~/shops.csv")
+item_category <- read.csv("~/Datos/item_categories.csv")
+items <- read.csv("~/Datos/items.csv")
+sales_train <- read.csv("~/Datos/sales_train.csv")
+shops <- read.csv("~/Datos/shops.csv")
+test <- read.csv("~/Datos/test.csv")
+hol <- read_csv("HolRus13-15.csv")
+hol$fulldate <- paste0(hol$Date,"-",hol$yr)
+
+#Instrucciones originales:
+#https://github.com/eddiesigner/sketch-translate-me/wiki/Generate-a-Google-API-Key
+
+#Para generar la llave API, es necesario ir a la liga:
+#https://console.cloud.google.com/
+#1.- Generar un projecto de la barra de arriba.
+#2.- Posteriormente, ir al menu "hamburguesa" en la parte superior izquierda y seleccionar "Servicios & API".
+#3.- Del dashboard de la plataforma, hacer la busqueda de "Google Translate API" y habilitarla.
+#4.- Del menu de la izquierda seleccionar "credenciales" > Generar credenciales > API Key.
+#5.- Copiar la llave del API generada para usar en el código siguiente.
+
 
 #Para este paso, generamos una llave para el API de Google Translate, sin embargo esto puede generar costos y lo decidimos no incluirlo en el código.  Otra opción es suspender la llave para que no sea utilizada.
 key <- "Please_use_your_own_API_key"
@@ -38,5 +53,7 @@ names(shops) <- c("shop_name","shop_id")
 
 #Corremos este comando para guardar los objetos obtenidos y no tener que correr las traducciones de nuevo.  Estos objetos con las traducciones los guardamos en el archivo "transdata.RData"
 save(items,items_en,items_ru,item_category,item_category_en,item_category_ru, shops,shops_en,shops_ru,file = "transdata.RData")
+load("./datos_trad/transdata.RData")
+
 ```
 
