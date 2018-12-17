@@ -5,7 +5,7 @@ output:
     toc: TRUE
     toc_depth: 4
 ---
-```{r, eval=FALSE, include=FALSE}
+```{r}
 t<-Sys.time()
 ```
 
@@ -14,6 +14,7 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(DT)
 library(scales)
+library(pryr)
 ```
 
 ```{r Utils, message=FALSE, warning=FALSE}
@@ -21,24 +22,50 @@ source('02_Utils.R')
 ```
 
 
-# Preparación de los datos 
+# Selección de los datos 
 
-
-## Selección de los datos 
-
-Hasta el momento, se seleccionan todas las variables disponibles. Cabe destacar que las variables de nombre de artículo, nombre de categoría y nombre de tienda se conservan con fines de interpretabilidad y para el análisis exploratorio, pero no se utilizarán en el modelado de los datos. 
+Hasta el momento, se seleccionan todas las variables disponibles de la fase **Entendiendo los Datos**. Cabe destacar que las variables de nombre de artículo, nombre de categoría y nombre de tienda se conservan con fines de interpretabilidad, pero de ser necesario se eliminarán de las bases para acelerar el proceso y liberar memoria.  
 
 ```{r}
+# Cargaos los datos de entrenamiento obtenidos de la fase anterior. 
 datos_train<-readRDS('Datos_trad/train_trad.rds')
+
+# Carggamos los catálogos de artículos y tiendas
 datos_items<-readRDS('Datos_trad/datos_items.rds')
 shops<-readRDS('Datos_trad/shops.rds')
+
 ```
 
-## Limpieza de datos
+Esta base de datos tiene las siguientes variables: 
 
-### Tipo de variables 
+1. *date*: fecha en que se registró la compra/devolución en el formato dd/mm/yyyy. 
 
-Hechamos un vistazo a la base de datos obtenida del proceso de exploración. 
+2. *date_block_num*: número consecutivo para el mes de venta. Es decir, enero 2013 es igual a 0, febrero 2013 es igual a 1, ..., octubre 2015 es igual a 33. 
+
+3. *shop_id*: identificador único de las tiendas de 1C. 
+
+4. *item_id*: identificador único del artículo. 
+ 
+5. *item_price*: precio en el que se vendió el artículo. No se menciona la moneda en que realizó la transacción, posiblemente fueron dólares o rublos rusos. 
+
+6. *item_cnt_day*: número de unidades vendidas del artículo. Números negativos indican una devolución del artículo. Se va a predecir una cantidad mensual de esta medida. 
+
+7. *item_name*: nombre del artículo (en ruso). 
+
+8. *item_category_id*: identificador único de la categoría a la que pertenece el artículo.
+    
+9. *item_category_name*: nombre de la categoría (en ruso). 
+    
+10. *item_cateogry_id*: identificador único de la categoría.
+    
+11. *ID*: identificador único para la dupla (tienda,artículo). 
+
+
+# Limpieza de datos
+
+## Tipo de variables 
+
+Hechamos un vistazo a la base de datos obtenida del proceso de comprensión y exploración de los datos. 
 
 ```{r }
 
@@ -57,8 +84,7 @@ datos_train<-datos_train%>%
 ```
 
 
-
-### Datos faltantes
+## Datos faltantes
 
 Checamos si existen datos faltantes en el set de entrenamiento. 
 ```{r DatosFaltantes}
@@ -69,9 +95,9 @@ summary(datos_train)
 No se tienen valores faltantes en el set de entrenamiento. 
 
 
-### Valores únicos por variable. 
+## Valores únicos por variable. 
 
-Se verifican los valores únicos por variable para ver si existen o bservaciones con errores o si vale la pena categorizar alguna variable. 
+Se verifican los valores únicos por variable para ver si existen observaciones con errores o si vale la pena categorizar alguna variable. 
 
 
 Para las variables *date*, *date_block_num*, *shop_id*, *item_id*, *item_name*,*item_category_id*, *item_category_name*, *shop_name* y *ID* no es necesario checar los valores únicos ya se son identificadores de fecha, tienda, categoría o artículo. 
@@ -79,7 +105,8 @@ Para las variables *date*, *date_block_num*, *shop_id*, *item_id*, *item_name*,*
 
 Las variables que sí se deben revisar son *item_price* y *item_cnt_day*. 
 
-#### Precio por artículo 
+
+### Precio por artículo 
 
 ```{r}
 length(unique(datos_train$item_price))
@@ -101,6 +128,7 @@ head(sort(datos_train$item_price,decreasing = TRUE),20)
 ```
 
 Efectivamente se trata de un valor atípico. Veamos de qué producto se trata. 
+
 ```{r OutlierPrice2}
 
 datos_train$item_name[which(datos_train$item_price==307980)]
@@ -149,11 +177,16 @@ datatable(items_ppos)
 Se tienen otros tres articulos iguales vendidos en la misma fecha. Por lo tanto se reemplaza el precio negativo con el promedio del precio de estos artículos. 
 
 ```{r}
-datos_train$item_price[which(datos_train$item_price==-1)]<-mean(items_ppos$item_price)  
-summary(datos_train$item_price)
+# Reemplazamos el precio -1 con el promedio 
+datos_train$item_price[which(datos_train$item_price==-1)]<-mean(items_ppos$item_price)
 ```
 
 ```{r}
+
+# Veamos como quedó la distribución del precio de los articulos. 
+summary(datos_train$item_price)
+
+# Histograma del precio de los artículos.
 ggplot(datos_train,aes(item_price))+
   geom_histogram(binwidth = 1000)+
   ggtitle('Item Price Distirbution')+
@@ -162,7 +195,7 @@ ggplot(datos_train,aes(item_price))+
   
 ```
 
-Todavía existe una gran diferencia entre el tercer cuantil y el valor máximo del precio. Sin embargo, dado aue la tarea es predecir el número de articulos vendido cada mes de cada tipo en cada tienda, por el momento, no se realiza ninguna estrategia de categorización del precio. De ser necesario, se realizará en la parte de ingeniería de características. 
+Todavía existe una gran diferencia entre el tercer cuantil y el valor máximo del precio. Sin embargo, dado aue la tarea es predecir el número de articulos vendido cada mes de cada tipo en cada tienda, por el momento, no se realiza ninguna estrategia de categorización del precio. De ser necesario, se realizará en el pipeline de python al modelar. 
 
 
 #### Número de unidades vendidas/devueltas. 
@@ -175,6 +208,7 @@ sort(unique(datos_train$item_cnt_day),decreasing = TRUE)
 
 El número de unidades vendidas por artículo va desde 1 hasta 2169. El número de unidades devueltas por artículo va desde 1 hasta 22. No parece haber nada incorrecto en esta variable. 
 
+
 Veamos que artículos fueron los más vendidos. 
 
 ```{r}
@@ -186,9 +220,10 @@ datos_train$item_name[match(cnt_day_mayores,datos_train$item_cnt_day)]
 Al parecer, "Delivery to the point of delivery (Boxberry)" y "Ticket &quot;IgroMir 2015&quot; - October 3, 2015 (website) [Digital version]" son de los artículos más devueltos. 
 
 
-# Feature Engineering
+# Ingeniería de características
 
-Para hacer el feature engineering nos olivdamos momentaneamente de los nombres de los artículos, categorías y tiendas y sólo trabajamos con el identificador de la tienda y del artículo, la fecha, el consecutivo de la fecha, el precio y las ventas. 
+Para hacer el feature engineering nos olivdamos momentáneamente de los nombres de los artículos, categorías y tiendas y sólo trabajamos con el identificador de la tienda y del artículo, la fecha, el consecutivo de la fecha, el precio y las ventas. 
+
 
 ## Separar día mes y año 
 
@@ -216,9 +251,8 @@ La base de datos de entrenamiento tiene información diaria para tres años: 201
 ## Agregados Mensuales
 
 La tarea es predecir las ventas mensuales por dupla (tienda, artículo); por lo tanto, se hace un agregado mensual de las variables. 
-
-
-Para el número de artículos la suma de todos los artículos vendidos en el mismo mes. Para el precio del artículo se crean distintas medidas de agregación: máxmo, mínimo, media, mediana, moda y rango.
+  * Para el número de artículos vendidos, se agrega calculando la suma de todos los artículos vendidos en el mismo mes, en la misma tienda.
+  * Para el precio del artículo vendido, se agrega calculando el precio promedio de todos los artículos vendidos en el mismo mes, en la misma tienda. 
 
 
 ```{r AgregadoMensual, cache=TRUE}
@@ -226,9 +260,7 @@ Para el número de artículos la suma de todos los artículos vendidos en el mis
 # hacemos el agregado mensual por dupla (tienda,art) y fecha mensual (date_block_num)
 train_mensuales<-datos_train%>%
   group_by(date_block_num,shop_id,item_id)%>%
-  summarise(month=unique(month),
-            year=unique(year),
-            item_price_mean=mean(item_price),
+  summarise(item_price_mean=mean(item_price),
             item_cnt_month=sum(item_cnt_day))
 
 # Ordenaos por dupla 
@@ -236,6 +268,9 @@ train_mensuales<-arrange(train_mensuales,date_block_num,shop_id,item_id)
 
 # guardar datos
 saveRDS(train_mensuales,"Datos_clean/train_mensuales.rds")
+
+# eliminar datos train para liberar memoria
+mem_change(rm(datos_train))
 
 ```
 
@@ -253,8 +288,8 @@ Creamos el grid con todas las posibles combinaciones por mes, tienda y artículo
 ```{r}
 #Creamos grid de date_block_num, shop_id, item_id
 train_mensuales_completo<-list(date_block_num=0:33,
-                     shop_id=unique(shops$shop_id),
-                     item_id=unique(datos_items$item_id))%>%
+                               shop_id=unique(shops$shop_id),
+                               item_id=unique(datos_items$item_id))%>%
   expand.grid
 
 dim(train_mensuales_completo)
@@ -266,32 +301,48 @@ Hacemos un merge de los datos mensuales observados obtenidos en el paso anterior
 ```{r}
 # Hacemos left join de los datos mensuales 
 train_mensuales_completo<-left_join(train_mensuales_completo,train_mensuales,by=c('date_block_num','shop_id','item_id'))
+
+mem_change(rm(train_mensuales))
+
 ```
 
 ```{r}
 glimpse(train_mensuales_completo)
 ```
 
+Agregamos el item_category_id para poder hacer agregaciones por categorías de artículos. 
+
 ```{r}
+# Agregamos la variable category_id
 train_mensuales_completo<-train_mensuales_completo%>%
   left_join(datos_items,key='item_id')%>%
-  left_join(shops,key='shop_id')
+  select(-c(item_name,item_category_name))
+
 ```
 
 ```{r}
 glimpse(train_mensuales_completo)
 ```
 
-Unicamente tenemos missings en item_price_mean y item_cnt_month. Los missings en item_cnt_ month corresponden a que no hubo ventas para ese artículo en ese mes en esa tienda; porlo tanto, sustituimos estos NA's con 0.
+
+Unicamente tenemos missings en item_price_mean y item_cnt_month. Los missings en item_cnt_month corresponden a que no hubo ventas para ese artículo en ese mes en esa tienda; porlo tanto, sustituimos estos NA's con 0.
 
 ```{r}
 train_mensuales_completo$item_cnt_month[which(is.na(train_mensuales_completo$item_cnt_month))]<-0
 ```
 
-Para arreglar los NA's del precio, hacemos nuevas variables. Calculamos el precio promedio por artículo, el precio promedio de todos los artículos en cada categorìa y el precio promedio de todos los artículos en cada tienda. 
+Para arreglar los NA's del precio, hacemos nuevas variables. Calculamos:
+* el precio promedio por artículo (*item_price_mean_art*),
+* la cantidad vendida por artículo (*item_cnt_art*), 
+* la cantidad vendida promedio por artículo (*item_cnt_mean_art*), 
+* el precio promedio por categoría (*item_price_mean_cat*),
+* la cantidad vendida por categoría (*item_cnt_cat*), 
+* la cantidad vendida promedio por categoría (*item_cnt_mean_art*), 
+* el precio promedio por tienda (*item_price_mean_shop*),
+* la cantidad vendida por tienda (*item_cnt_shop*), 
+* la cantidad vendida promedio por tienda (*item_cnt_mean_art*), 
 
 ```{r}
-
 # Por artículo
 mean_price_item<-train_mensuales_completo%>%
   group_by(item_id)%>%
@@ -324,7 +375,9 @@ train_mensuales_completo<-train_mensuales_completo%>%
   left_join(mean_price_cat, key='item_category_id')%>%
   left_join(mean_price_shop,key='shop_id')
 
-rm(mean_price_item,mean_price_cat,mean_price_shop)
+mem_change(rm(mean_price_item))
+mem_change(rm(mean_price_cat))
+mem_change(rm(mean_price_shop))
 ```
 
 ```{r}
@@ -348,122 +401,78 @@ train_mensuales_completo$item_price_mean_art[which(is.na(train_mensuales_complet
 
 Dado que en la verdadera tarea de predicción no se van a tener los datos actuales, sino los datos de los meses previos, creamos rezagos de las variables actuales: mensual, bimestral, trimestral, semestral. 
 
-```{r}
-# mem_change(rm(train_mensuales))
 
-# # guardar datos
-saveRDS(train_mensuales_completo,"Datos_clean/train_mensuales_completo.rds")
+```{r Lags1}
 
-train_mensuales_completo<-train_mensuales_completo%>%
-  mutate(item_price_mean_art_l1=lag(item_price_mean_art),
-         item_price_mean_art_l2=lag(item_price_mean_art,2),
-         item_price_mean_art_l3=lag(item_price_mean_art,3),
-         item_price_mean_art_l6=lag(item_price_mean_art,6),
-         item_cnt_art_l1=lag(item_cnt_art),
-         item_cnt_art_l2=lag(item_cnt_art,2),
-         item_cnt_art_l3=lag(item_cnt_art,3),
-         item_cnt_art_l6=lag(item_cnt_art,6),
-         item_cnt_mean_art_l1=lag(item_cnt_mean_art),
-         item_cnt_mean_art_l2=lag(item_cnt_mean_art,2),
-         item_cnt_mean_art_l3=lag(item_cnt_mean_art,3),
-         item_cnt_mean_art_l6=lag(item_cnt_mean_art,6),
-         item_price_mean_cat_l1=lag(item_price_mean_cat),
-         item_price_mean_cat_l2=lag(item_price_mean_cat,2),
-         item_price_mean_cat_l3=lag(item_price_mean_cat,3),
-         item_price_mean_cat_l6=lag(item_price_mean_cat,6),
-         item_cnt_cat_l1=lag(item_cnt_cat),
-         item_cnt_cat_l2=lag(item_cnt_cat,2),
-         item_cnt_cat_l3=lag(item_cnt_cat,3),
-         item_cnt_cat_l6=lag(item_cnt_cat,6),
-         item_cnt_mean_art_l1=lag(item_cnt_mean_art),
-         item_cnt_mean_art_l2=lag(item_cnt_mean_art,2),
-         item_cnt_mean_art_l3=lag(item_cnt_mean_art,3),
-         item_cnt_mean_art_l6=lag(item_cnt_mean_art,6),
-         item_price_mean_shop_l1=lag(item_price_mean_shop),
-         item_price_mean_shop_l2=lag(item_price_mean_shop,2),
-         item_price_mean_shop_l3=lag(item_price_mean_shop,3),
-         item_price_mean_shop_l6=lag(item_price_mean_shop,6),
-         item_cnt_shop_l1=lag(item_cnt_shop),
-         item_cnt_shop_l2=lag(item_cnt_shop,2),
-         item_cnt_shop_l3=lag(item_cnt_shop,3),
-         item_cnt_shop_l6=lag(item_cnt_shop,6),
-         item_cnt_mean_shop_l1=lag(item_cnt_mean_shop),
-         item_cnt_mean_shop_l2=lag(item_cnt_mean_shop,2),
-         item_cnt_mean_shop_l3=lag(item_cnt_mean_shop,3),
-         item_cnt_mean_shop_l6=lag(item_cnt_mean_shop,6))
-# 
-# # guardar datos
-# saveRDS(train_mensuales_completo,"Datos_clean/train_mensuales_completo.rds")
-
-```
-
-
-```{r}
-# mem_change(rm(train_mensuales))
-
-# # guardar datos
-saveRDS(train_mensuales_completo,"Datos_clean/train_mensuales_completo.rds")
-
-train_mensuales_completo<-train_mensuales_completo%>%
-  mutate(item_price_mean_art_l1=lag(item_price_mean_art),
-         item_price_mean_art_l2=lag(item_price_mean_art,2),
-         item_price_mean_art_l3=lag(item_price_mean_art,3),
-         item_price_mean_art_l6=lag(item_price_mean_art,6),
-         item_cnt_art_l1=lag(item_cnt_art),
-         item_cnt_art_l2=lag(item_cnt_art,2),
-         item_cnt_art_l3=lag(item_cnt_art,3),
-         item_cnt_art_l6=lag(item_cnt_art,6),
-         item_cnt_mean_art_l1=lag(item_cnt_mean_art),
-         item_cnt_mean_art_l2=lag(item_cnt_mean_art,2),
-         item_cnt_mean_art_l3=lag(item_cnt_mean_art,3),
-         item_cnt_mean_art_l6=lag(item_cnt_mean_art,6),
-         item_cnt_mean_art_l12=lag(item_cnt_mean_art,12))
-
-saveRDS(train_mensuales_completo,"Datos_clean/train_mensuales_completo.rds")
-
-
-mem_change(rm(train_mensuales_completo))
-
-train_mensuales_completo<-readRDS("Datos_clean/train_mensuales_completo.rds")
-
+# # Creamos lags de variables. 
 # train_mensuales_completo<-train_mensuales_completo%>%
-#   mutate(  item_price_mean_cat_l1=lag(item_price_mean_cat),
-#          item_price_mean_cat_l2=lag(item_price_mean_cat,2),
-#          item_price_mean_cat_l3=lag(item_price_mean_cat,3),
-#          item_price_mean_cat_l6=lag(item_price_mean_cat,6),
-#          item_cnt_cat_l1=lag(item_cnt_cat),
-#          item_cnt_cat_l2=lag(item_cnt_cat,2),
-#          item_cnt_cat_l3=lag(item_cnt_cat,3),
-#          item_cnt_cat_l6=lag(item_cnt_cat,6),
+#   mutate(item_price_mean_art_l1=lag(item_price_mean_art),
+#          item_price_mean_art_l3=lag(item_price_mean_art,3),
+#          item_price_mean_art_l12=lag(item_price_mean_art,12),
+#          item_cnt_art_l1=lag(item_cnt_art),
+#          item_cnt_art_l3=lag(item_cnt_art,3),
+#          item_cnt_art_l12=lag(item_cnt_art,12),
 #          item_cnt_mean_art_l1=lag(item_cnt_mean_art),
-#          item_cnt_mean_art_l2=lag(item_cnt_mean_art,2),
 #          item_cnt_mean_art_l3=lag(item_cnt_mean_art,3),
-#          item_cnt_mean_art_l6=lag(item_cnt_mean_art,6),
+#          item_cnt_mean_art_l12=lag(item_cnt_mean_art,12),
+#          item_price_mean_cat_l1=lag(item_price_mean_cat),
+#          item_price_mean_cat_l3=lag(item_price_mean_cat,3),
+#          item_price_mean_cat_l12=lag(item_price_mean_cat,12),
+#          item_cnt_cat_l1=lag(item_cnt_cat),
+#          item_cnt_cat_l3=lag(item_cnt_cat,3),
+#          item_cnt_cat_l12=lag(item_cnt_cat,12),
+#          item_cnt_mean_art_l1=lag(item_cnt_mean_art),
+#          item_cnt_mean_art_l3=lag(item_cnt_mean_art,3),
+#          item_cnt_mean_art_l12=lag(item_cnt_mean_art,12),
 #          item_price_mean_shop_l1=lag(item_price_mean_shop),
-#          item_price_mean_shop_l2=lag(item_price_mean_shop,2),
 #          item_price_mean_shop_l3=lag(item_price_mean_shop,3),
-#          item_price_mean_shop_l6=lag(item_price_mean_shop,6),
+#          item_price_mean_shop_l12=lag(item_price_mean_shop,12),
 #          item_cnt_shop_l1=lag(item_cnt_shop),
-#          item_cnt_shop_l2=lag(item_cnt_shop,2),
 #          item_cnt_shop_l3=lag(item_cnt_shop,3),
-#          item_cnt_shop_l6=lag(item_cnt_shop,6),
+#          item_cnt_shop_l12=lag(item_cnt_shop,12),
 #          item_cnt_mean_shop_l1=lag(item_cnt_mean_shop),
-#          item_cnt_mean_shop_l2=lag(item_cnt_mean_shop,2),
 #          item_cnt_mean_shop_l3=lag(item_cnt_mean_shop,3),
-#          item_cnt_mean_shop_l6=lag(item_cnt_mean_shop,6))
-# 
-# # guardar datos
+#          item_cnt_mean_shop_l12=lag(item_cnt_mean_shop,12))
+
+# Creamos lags de variables. 
+train_mensuales_completo<-train_mensuales_completo%>%
+  mutate(item_price_mean_art_l1=lag(item_price_mean_art),
+         item_price_mean_art_l12=lag(item_price_mean_art,12),
+         item_cnt_art_l1=lag(item_cnt_art),
+         item_cnt_art_l12=lag(item_cnt_art,12),
+         item_cnt_mean_art_l1=lag(item_cnt_mean_art),
+         item_cnt_mean_art_l12=lag(item_cnt_mean_art,12),
+         item_price_mean_cat_l1=lag(item_price_mean_cat),
+         item_price_mean_cat_l12=lag(item_price_mean_cat,12),
+         item_cnt_cat_l1=lag(item_cnt_cat),
+         item_cnt_cat_l12=lag(item_cnt_cat,12),
+         item_cnt_mean_art_l1=lag(item_cnt_mean_art),
+         item_cnt_mean_art_l12=lag(item_cnt_mean_art,12),
+         item_price_mean_shop_l1=lag(item_price_mean_shop),
+         item_price_mean_shop_l12=lag(item_price_mean_shop,12),
+         item_cnt_shop_l1=lag(item_cnt_shop),
+         item_cnt_shop_l12=lag(item_cnt_shop,12),
+         item_cnt_mean_shop_l1=lag(item_cnt_mean_shop),
+         item_cnt_mean_shop_l12=lag(item_cnt_mean_shop,12))
+
 # saveRDS(train_mensuales_completo,"Datos_clean/train_mensuales_completo.rds")
 
 ```
 
-<!-- Imputamos los NA's de los rezagos con el primer valor observado.  -->
+Imputamos los NA's de los rezagos (primeros $n$ valores para rezago de tamaño $n$) con el primer valor observado (correspondiente a la observación $n+1$).
 
-<!-- ```{r} -->
-<!-- aux<-train_mensuales_completo%>% -->
-<!--   dplyr::select(contains("l1"))%>% -->
-<!--   dplyr::select(-contains("l12")) -->
-<!-- ``` -->
+```{r}
+# Imputamos valores
+train_mensuales_completo<-apply(train_mensuales_completo,2,imputarLags)
+
+saveRDS(train_mensuales_completo,"Datos_clean/train_mensuales_completo.rds")
+
+```
+
+
+```{r}
+saveRDS(train_mensuales_completo,"Datos_clean/train_mensuales_completo.rds")
+```
 
 
 <!-- ## Escalamiento del número de artículos vendidos -->
@@ -471,21 +480,17 @@ train_mensuales_completo<-readRDS("Datos_clean/train_mensuales_completo.rds")
 <!-- Para efectos de la competencia en Kaggle, el número de artículos vendidos debe estar entre 0 y 20. Por lo tanto se escala la variable *item_cnt_month* -->
 
 <!-- ```{r, eval=FALSE, include=FALSE} -->
-<!-- train_mensuales$item_cnt_month_rescale<-rescale(train_mensuales$item_cnt_month,to=c(0,20)) -->
+<!-- train_mensuales_completo$item_cnt_month_rescale<-rescale(train_mensuales$item_cnt_month,to=c(0,20)) -->
+
+<!-- saveRDS(train_mensuales_completo,"Datos_clean/train_mensuales_completo.rds") -->
+
 <!-- ``` -->
 
 
-<!-- # Almacenamiento de los datos  -->
 
-<!-- Almacenamos los datos mensuales de las ventas limpios en el objeto **train_mensuales.rds**.  -->
+```{r}
+t<-t-Sys.time()
 
-<!-- ```{r SaveCleanData,eval=FALSE, include=FALSE} -->
-<!-- # Guardamos como objeto Rds  -->
-<!-- saveRDS(train_mensuales,"Datos_clean/train_mensuales.rds") -->
-<!-- ``` -->
+t
+```
 
-<!-- ```{r, eval=FALSE, include=FALSE} -->
-<!-- t<-t-Sys.time() -->
-
-<!-- t -->
-<!-- ``` -->
