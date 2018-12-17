@@ -404,6 +404,58 @@ Dado que en la verdadera tarea de predicción no se van a tener los datos actual
 
 ```{r Lags1}
 
+saveRDS(train_mensuales_completo,"Datos_clean/train_mensuales_completo_sinlags.rds")
+train_mensuales_completo<-readRDS("Datos_clean/train_mensuales_completo_sinlags.rds")
+
+# Creamos lags de variables. 
+train_mensuales_completo<-train_mensuales_completo%>%
+mutate(item_price_mean_art_l1=lag(item_price_mean_art),
+item_price_mean_art_l2=lag(item_price_mean_art,2),
+item_price_mean_art_l3=lag(item_price_mean_art,3),
+item_price_mean_art_l6=lag(item_price_mean_art,6),
+item_price_mean_art_l12=lag(item_price_mean_art,12),
+item_cnt_art_l1=lag(item_cnt_art),
+item_cnt_art_l2=lag(item_cnt_art,2),
+item_cnt_art_l3=lag(item_cnt_art,3),
+item_cnt_art_l6=lag(item_cnt_art,6),
+item_cnt_art_l12=lag(item_cnt_art,12),
+item_cnt_mean_art_l1=lag(item_cnt_mean_art),
+item_cnt_mean_art_l2=lag(item_cnt_mean_art,2),
+item_cnt_mean_art_l3=lag(item_cnt_mean_art,3),
+item_cnt_mean_art_l6=lag(item_cnt_mean_art,6),
+item_cnt_mean_art_l12=lag(item_cnt_mean_art,12),
+item_price_mean_cat_l1=lag(item_price_mean_cat),
+item_price_mean_cat_l2=lag(item_price_mean_cat,2),
+item_price_mean_cat_l3=lag(item_price_mean_cat,3),
+item_price_mean_cat_l6=lag(item_price_mean_cat,6),
+item_price_mean_cat_l12=lag(item_price_mean_cat,12),
+item_cnt_cat_l1=lag(item_cnt_cat),
+item_cnt_cat_l2=lag(item_cnt_cat,2),
+item_cnt_cat_l3=lag(item_cnt_cat,3),
+item_cnt_cat_l6=lag(item_cnt_cat,6),
+item_cnt_cat_l12=lag(item_cnt_cat,12),
+item_cnt_mean_art_l1=lag(item_cnt_mean_art),
+item_cnt_mean_art_l2=lag(item_cnt_mean_art,2),
+item_cnt_mean_art_l3=lag(item_cnt_mean_art,3),
+item_cnt_mean_art_l6=lag(item_cnt_mean_art,6),
+item_cnt_mean_art_l12=lag(item_cnt_mean_art,12),
+item_price_mean_shop_l1=lag(item_price_mean_shop),
+item_price_mean_shop_l2=lag(item_price_mean_shop,2),
+item_price_mean_shop_l3=lag(item_price_mean_shop,3),
+item_price_mean_shop_l6=lag(item_price_mean_shop,6),
+item_price_mean_shop_l12=lag(item_price_mean_shop,12),
+item_cnt_shop_l1=lag(item_cnt_shop),
+item_cnt_shop_l2=lag(item_cnt_shop,2),
+item_cnt_shop_l3=lag(item_cnt_shop,3),
+item_cnt_shop_l6=lag(item_cnt_shop,6),
+item_cnt_shop_l12=lag(item_cnt_shop,12),
+item_cnt_mean_shop_l1=lag(item_cnt_mean_shop),
+item_cnt_mean_shop_l2=lag(item_cnt_mean_shop,2),
+item_cnt_mean_shop_l3=lag(item_cnt_mean_shop,3),
+item_cnt_mean_shop_l6=lag(item_cnt_mean_shop,6),
+item_cnt_mean_shop_l12=lag(item_cnt_mean_shop,12))
+
+
 # # Creamos lags de variables. 
 # train_mensuales_completo<-train_mensuales_completo%>%
 #   mutate(item_price_mean_art_l1=lag(item_price_mean_art),
@@ -434,26 +486,26 @@ Dado que en la verdadera tarea de predicción no se van a tener los datos actual
 #          item_cnt_mean_shop_l3=lag(item_cnt_mean_shop,3),
 #          item_cnt_mean_shop_l12=lag(item_cnt_mean_shop,12))
 
-# Creamos lags de variables. 
-train_mensuales_completo<-train_mensuales_completo%>%
-  mutate(item_price_mean_art_l1=lag(item_price_mean_art),
-         item_price_mean_art_l12=lag(item_price_mean_art,12),
-         item_cnt_art_l1=lag(item_cnt_art),
-         item_cnt_art_l12=lag(item_cnt_art,12),
-         item_cnt_mean_art_l1=lag(item_cnt_mean_art),
-         item_cnt_mean_art_l12=lag(item_cnt_mean_art,12),
-         item_price_mean_cat_l1=lag(item_price_mean_cat),
-         item_price_mean_cat_l12=lag(item_price_mean_cat,12),
-         item_cnt_cat_l1=lag(item_cnt_cat),
-         item_cnt_cat_l12=lag(item_cnt_cat,12),
-         item_cnt_mean_art_l1=lag(item_cnt_mean_art),
-         item_cnt_mean_art_l12=lag(item_cnt_mean_art,12),
-         item_price_mean_shop_l1=lag(item_price_mean_shop),
-         item_price_mean_shop_l12=lag(item_price_mean_shop,12),
-         item_cnt_shop_l1=lag(item_cnt_shop),
-         item_cnt_shop_l12=lag(item_cnt_shop,12),
-         item_cnt_mean_shop_l1=lag(item_cnt_mean_shop),
-         item_cnt_mean_shop_l12=lag(item_cnt_mean_shop,12))
+# # Creamos lags de variables. 
+# train_mensuales_completo<-train_mensuales_completo%>%
+#   mutate(item_price_mean_art_l1=lag(item_price_mean_art),
+#          item_price_mean_art_l12=lag(item_price_mean_art,12),
+#          item_cnt_art_l1=lag(item_cnt_art),
+#          item_cnt_art_l12=lag(item_cnt_art,12),
+#          item_cnt_mean_art_l1=lag(item_cnt_mean_art),
+#          item_cnt_mean_art_l12=lag(item_cnt_mean_art,12),
+#          item_price_mean_cat_l1=lag(item_price_mean_cat),
+#          item_price_mean_cat_l12=lag(item_price_mean_cat,12),
+#          item_cnt_cat_l1=lag(item_cnt_cat),
+#          item_cnt_cat_l12=lag(item_cnt_cat,12),
+#          item_cnt_mean_art_l1=lag(item_cnt_mean_art),
+#          item_cnt_mean_art_l12=lag(item_cnt_mean_art,12),
+#          item_price_mean_shop_l1=lag(item_price_mean_shop),
+#          item_price_mean_shop_l12=lag(item_price_mean_shop,12),
+#          item_cnt_shop_l1=lag(item_cnt_shop),
+#          item_cnt_shop_l12=lag(item_cnt_shop,12),
+#          item_cnt_mean_shop_l1=lag(item_cnt_mean_shop),
+#          item_cnt_mean_shop_l12=lag(item_cnt_mean_shop,12))
 
 # saveRDS(train_mensuales_completo,"Datos_clean/train_mensuales_completo.rds")
 
@@ -465,32 +517,13 @@ Imputamos los NA's de los rezagos (primeros $n$ valores para rezago de tamaño $
 # Imputamos valores
 train_mensuales_completo<-apply(train_mensuales_completo,2,imputarLags)
 
+# Almacenamos los datos mensuales
 saveRDS(train_mensuales_completo,"Datos_clean/train_mensuales_completo.rds")
 
 ```
 
-
-```{r}
-saveRDS(train_mensuales_completo,"Datos_clean/train_mensuales_completo.rds")
-```
-
-
-<!-- ## Escalamiento del número de artículos vendidos -->
-
-<!-- Para efectos de la competencia en Kaggle, el número de artículos vendidos debe estar entre 0 y 20. Por lo tanto se escala la variable *item_cnt_month* -->
-
-<!-- ```{r, eval=FALSE, include=FALSE} -->
-<!-- train_mensuales_completo$item_cnt_month_rescale<-rescale(train_mensuales$item_cnt_month,to=c(0,20)) -->
-
-<!-- saveRDS(train_mensuales_completo,"Datos_clean/train_mensuales_completo.rds") -->
-
-<!-- ``` -->
-
-
-
-```{r}
+```{r, include=FALSE}
 t<-t-Sys.time()
 
 t
 ```
-

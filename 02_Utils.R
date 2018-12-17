@@ -11,4 +11,5 @@ imputarLags<-function(x){
   if(non_na>1){
   x[which(is.na(x))]<-x[non_na]
   }
+  x
 }
