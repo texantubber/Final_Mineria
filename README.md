@@ -1,8 +1,8 @@
 # Minería y Análisis de Datos Proyecto Final: Predict Future Sales 
 ## Alejandra Lelo de Larrea Ibarra 000124433,  Dante Ruiz Martínez 183340,  José Carlos Escobar Gutiérrez 175895
 
-Para replicar, hacer CURL de los archivos de segmento del archivo Min_Final.7z.
-Descomprimir con.
+Para replicar, hacer pull de los archivos Min_Final.7z.001 al Min_Final.7z009 y
+descomprimir con "Descompresion.sh".
 
 ### Objetivo
 
